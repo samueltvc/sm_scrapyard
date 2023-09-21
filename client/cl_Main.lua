@@ -51,13 +51,14 @@ local blveh =
 
 RegisterNetEvent('sm_scrapyard:giveinformation')
 AddEventHandler("sm_scrapyard:giveinformation", function()
-        local playerPed = PlayerPedId()
-        local playerCoords = GetEntityCoords(playerPed)
-        local ped = PlayerPedId()
-        local vehicle = GetVehiclePedIsIn(ped, false )
-        if timers == false and IsPedInAnyVehicle(PlayerPedId()) then
-            -- HERE PUT DISPATCH IF YOU WANT TO
+    local playerPed = PlayerPedId()
+    local playerCoords = GetEntityCoords(playerPed)
+    local ped = PlayerPedId()
+    local vehicle = GetVehiclePedIsIn(ped, false)
+
+    if not timers and IsPedInAnyVehicle(PlayerPedId()) then
         timers = true
+
         lib.progressBar({
             duration = 15000,
             label = Config.Notify.progresslabel,
@@ -70,40 +71,21 @@ AddEventHandler("sm_scrapyard:giveinformation", function()
                 mouse = false,
             },
         })
-        SetVehicleDoorOpen(GetVehiclePedIsIn(ped, false), 0, false, false)
-        Wait(100)
-        SetVehicleDoorBroken(GetVehiclePedIsIn(ped, false), 0, true)
-        Wait(100)
-        lib.callback("sm_scrapyard:deletevehicle")
-        SetVehicleDoorOpen(GetVehiclePedIsIn(ped, false), 1, false, false)
-        Wait(100)
-        SetVehicleDoorBroken(GetVehiclePedIsIn(ped, false), 1, true)
-        Wait(100)
-        lib.callback("sm_scrapyard:deletevehicle")
-        SetVehicleDoorOpen(GetVehiclePedIsIn(ped, false), 2, false, false)
-        Wait(100)
-        SetVehicleDoorBroken(GetVehiclePedIsIn(ped, false), 2, true)
-        Wait(100)
-        lib.callback("sm_scrapyard:deletevehicle")
-        SetVehicleDoorOpen(GetVehiclePedIsIn(ped, false), 3, false, false)
-        Wait(100)
-        SetVehicleDoorBroken(GetVehiclePedIsIn(ped, false), 3, true)
-        Wait(100)
-        lib.callback("sm_scrapyard:deletevehicle")
-        SetVehicleDoorOpen(GetVehiclePedIsIn(ped, false), 4, false, false)
-        Wait(100)
-        SetVehicleDoorBroken(GetVehiclePedIsIn(ped, false),4, true)
-        Wait(100)
-        lib.callback("sm_scrapyard:deletevehicle")
-        SetVehicleDoorOpen(GetVehiclePedIsIn(ped, false), 5, false, false)
-        Wait(100)
-        SetVehicleDoorBroken(GetVehiclePedIsIn(ped, false),5, true)
-            Wait(1200)
+
+        for i = 0, 5 do
+            SetVehicleDoorOpen(vehicle, i, false, false)
+            Wait(100)
+            SetVehicleDoorBroken(vehicle, i, true)
+            Wait(100)
             lib.callback("sm_scrapyard:deletevehicle")
+        end
+
+        Wait(1200)
+        lib.callback("sm_scrapyard:deletevehicle")
         DeleteVehicle(vehicle)
         Citizen.Wait(20000)
         timers = false
-    elseif timers == true then
+    elseif timers then
         lib.notify({
             title = Config.Notify.label,
             description = 'You cant do it twice, wait a little!',
@@ -117,8 +99,3 @@ AddEventHandler("sm_scrapyard:giveinformation", function()
         })
     end
 end)
-
-
-
-
-
