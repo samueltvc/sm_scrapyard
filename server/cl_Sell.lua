@@ -1,7 +1,3 @@
------------------For support, scripts, and more----------------
---------------- https://discord.gg/wasabiscripts  -------------
----------------------------------------------------------------
-
 ESX = exports["es_extended"]:getSharedObject()
 
 lib.callback.register('ws_sellshop:sellItem', function(source, data)

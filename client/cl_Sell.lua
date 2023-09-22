@@ -1,7 +1,3 @@
------------------For support, scripts, and more----------------
---------------- https://discord.gg/wasabiscripts  -------------
----------------------------------------------------------------
-
 ESX = exports["es_extended"]:getSharedObject()
 
 local function formatNumberWithCommas(n)
@@ -21,13 +17,13 @@ end
 
 local function sellItem(data)
     local data = data
-    local input = lib.inputDialog('How many would you like to sell?', {'Quantity'})
+    local input = lib.inputDialog('Kolik byste jich chtěli prodat?', {'Quantity'})
     if input then
         data.quantity = math.floor(tonumber(input[1]))
         if data.quantity < 1 then
             lib.notify({
                 title = 'Error',
-                description = 'Please enter a valid amount!',
+                description = 'Zadejte prosím platnou částku!',
                 type = 'error'
             })
         else
@@ -35,7 +31,7 @@ local function sellItem(data)
             if not done then
                 lib.notify({
                     title = 'Error',
-                    description = 'You lacked the requested items to sell!',
+                    description = 'Chyběly vám požadované položky k prodeji!',
                     type = 'error'
                 })
             else
@@ -49,7 +45,7 @@ local function sellItem(data)
     else
         lib.notify({
             title = 'Error',
-            description = 'Please enter a valid amount!',
+            description = 'Zadejte prosím platnou částku!',
             type = 'error'
         })
     end
