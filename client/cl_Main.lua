@@ -58,7 +58,6 @@ AddEventHandler("sm_scrapyard:giveinformation", function()
 
     if not timers and IsPedInAnyVehicle(PlayerPedId()) then
         timers = true
-
         lib.progressBar({
             duration = 15000,
             label = Config.Notify.progresslabel,
@@ -81,6 +80,7 @@ AddEventHandler("sm_scrapyard:giveinformation", function()
         end
 
         Wait(1200)
+        lib.callback("sm_scrapyard:deletedb")
         lib.callback("sm_scrapyard:deletevehicle")
         DeleteVehicle(vehicle)
         Citizen.Wait(20000)
@@ -98,4 +98,4 @@ AddEventHandler("sm_scrapyard:giveinformation", function()
             type = 'error'
         })
     end
-end)
+end) 
