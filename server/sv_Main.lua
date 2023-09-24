@@ -29,3 +29,9 @@ lib.callback.register('sm_scrapyard:deletevehicle', function()
         end
     end
 end)
+
+lib.callback.register('sm_scrapyard:deletedb', function()
+    local xPlayer = ESX.GetPlayerFromId(source)
+    local identifier = xPlayer.getIdentifier()
+	MySQL.Async.execute('DELETE FROM owned_vehicles WHERE owner = @owner', {['@owner'] = identifier})
+end)
