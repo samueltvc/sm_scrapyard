@@ -1,11 +1,10 @@
 ESX = exports["es_extended"]:getSharedObject()
 
-addCommas = function(n)
-	return tostring(math.floor(n)):reverse():gsub("(%d%d%d)","%1,")
-								  :gsub(",(%-?)$","%1"):reverse()
+local function formatNumberWithCommas(n)
+    return tostring(math.floor(n)):reverse():gsub("(%d%d%d)","%1,"):gsub(",(%-?)$","%1"):reverse()
 end
 
-CreateBlip = function(coords, sprite, colour, text, scale)
+local function createBlip(coords, sprite, colour, text, scale)
     local blip = AddBlipForCoord(coords)
     SetBlipSprite(blip, sprite)
     SetBlipColour(blip, colour)
@@ -16,7 +15,7 @@ CreateBlip = function(coords, sprite, colour, text, scale)
     EndTextCommandSetBlipName(blip)
 end
 
-AddEventHandler('ws_sellshop:sellItem', function(data)
+local function sellItem(data)
     local data = data
     local input = lib.inputDialog('Kolik byste jich chtěli prodat?', {'Quantity'})
     if input then
@@ -38,7 +37,7 @@ AddEventHandler('ws_sellshop:sellItem', function(data)
             else
                 lib.notify({
                     title = 'Success',
-                    description = 'Prodávali jste své zboží a vydělávali na něm $'..addCommas(done),
+                    description = 'You sold your goods for and profited $'..formatNumberWithCommas(done),
                     type = 'success'
                 })
             end
@@ -50,83 +49,107 @@ AddEventHandler('ws_sellshop:sellItem', function(data)
             type = 'error'
         })
     end
-end)
+end
 
-AddEventHandler('ws_sellshop:interact', function(data)
-    local storeData = data.store
+local function createSellShopInteractOptions(storeData)
     local items = storeData.items
-    local Options = {}
-    for i=1, #items do
-        table.insert(Options, {
+    local options = {}
+
+    for i = 1, #items do
+        table.insert(options, {
             title = items[i].label,
-            description = 'Prodejní Cena: $'..items[i].price,
+            description = 'Sell Price: $' .. items[i].price,
             event = 'ws_sellshop:sellItem',
             args = { item = items[i].item, price = items[i].price, currency = items[i].currency }
         })
     end
+
+    return options
+end
+
+local function setupBlipsAndInteractions()
+    for i, sellShop in ipairs(Config.SellShops) do
+        exports.qtarget:AddBoxZone(
+            i .. "_sell_shop",
+            sellShop.coords,
+            1.0,
+            1.0,
+            {
+                name = i .. "_sell_shop",
+                heading = sellShop.blip.heading,
+                debugPoly = false,
+                minZ = sellShop.coords.z - 1.5,
+                maxZ = sellShop.coords.z + 1.5
+            },
+            {
+                options = {
+                    {
+                        event = 'ws_sellshop:interact',
+                        icon = 'fas fa-hand-paper',
+                        label = 'Interact',
+                        store = sellShop
+                    }
+                },
+                job = 'all',
+                distance = 1.5
+            }
+        )
+
+        if sellShop.blip.enabled then
+            createBlip(sellShop.coords, sellShop.blip.sprite, sellShop.blip.color, sellShop.label, sellShop.blip.scale)
+        end
+    end
+end
+
+local function spawnPedAtShops()
+    local pedSpawned = {}
+    local pedPool = {}
+
+    while true do
+        local sleep = 1500
+        local playerPed = cache.ped
+        local pos = GetEntityCoords(playerPed)
+
+        for i, sellShop in ipairs(Config.SellShops) do
+            local dist = #(pos - sellShop.coords)
+
+            if dist <= Config.SellShopDistance and not pedSpawned[i] then
+                pedSpawned[i] = true
+                lib.requestModel(sellShop.ped, 100)
+                lib.requestAnimDict('mini@strip_club@idles@bouncer@base', 100)
+                pedPool[i] = CreatePed(28, sellShop.ped, sellShop.coords.x, sellShop.coords.y, sellShop.coords.z, sellShop.heading, false, false)
+                FreezeEntityPosition(pedPool[i], true)
+                SetEntityInvincible(pedPool[i], true)
+                SetBlockingOfNonTemporaryEvents(pedPool[i], true)
+                TaskPlayAnim(pedPool[i], 'mini@strip_club@idles@bouncer@base', 'base', 8.0, 0.0, -1, 1, 0, 0, 0, 0)
+            elseif dist >= Config.SellShopDistance + 1 and pedSpawned[i] then
+                local model = GetEntityModel(pedPool[i])
+                SetModelAsNoLongerNeeded(model)
+                DeletePed(pedPool[i])
+                SetPedAsNoLongerNeeded(pedPool[i])
+                pedPool[i] = nil
+                pedSpawned[i] = false
+            end
+        end
+
+        Wait(sleep)
+    end
+end
+
+-- Main code
+AddEventHandler('ws_sellshop:sellItem', sellItem)
+
+AddEventHandler('ws_sellshop:interact', function(data)
+    local storeData = data.store
+    local options = createSellShopInteractOptions(storeData)
     lib.registerContext({
         id = 'storeInteract',
         title = storeData.label,
-        options = Options
+        options = options
     })
     lib.showContext('storeInteract')
 end)
 
--- Blips/Targets
-CreateThread(function()
-    for i=1, #Config.SellShops do
-        exports.qtarget:AddBoxZone(i.."_sell_shop", Config.SellShops[i].coords, 1.0, 1.0, {
-            name=i.."_sell_shop",
-            heading=Config.SellShops[i].blip.heading,
-            debugPoly=false,
-            minZ=Config.SellShops[i].coords.z-1.5,
-            maxZ=Config.SellShops[i].coords.z+1.5
-        }, {
-            options = {
-                {
-                    event = 'ws_sellshop:interact',
-                    icon = 'fas fa-hand-paper',
-                    label = 'Zastavárna',
-                    store = Config.SellShops[i]
-                }
-            },
-            job = 'all',
-            distance = 1.5
-        })
-        if Config.SellShops[i].blip.enabled then
-            CreateBlip(Config.SellShops[i].coords, Config.SellShops[i].blip.sprite, Config.SellShops[i].blip.color, Config.SellShops[i].label, Config.SellShops[i].blip.scale)
-        end
-    end
-end)
-
--- Ped spawn thread
-local pedSpawned = {}
-local pedPool = {}
-CreateThread(function()
-	while true do
-		local sleep = 1500
-        local playerPed = cache.ped
-        local pos = GetEntityCoords(playerPed)
-		for i=1, #Config.SellShops do
-			local dist = #(pos - Config.SellShops[i].coords)
-			if dist <= 20 and not pedSpawned[i] then
-				pedSpawned[i] = true
-                lib.requestModel(Config.SellShops[i].ped, 100)
-                lib.requestAnimDict('mini@strip_club@idles@bouncer@base', 100)
-				pedPool[i] = CreatePed(28, Config.SellShops[i].ped, Config.SellShops[i].coords.x, Config.SellShops[i].coords.y, Config.SellShops[i].coords.z, Config.SellShops[i].heading, false, false)
-				FreezeEntityPosition(pedPool[i], true)
-				SetEntityInvincible(pedPool[i], true)
-				SetBlockingOfNonTemporaryEvents(pedPool[i], true)
-				TaskPlayAnim(pedPool[i], 'mini@strip_club@idles@bouncer@base','base', 8.0, 0.0, -1, 1, 0, 0, 0, 0)
-			elseif dist >= 21 and pedSpawned[i] then
-				local model = GetEntityModel(pedPool[i])
-				SetModelAsNoLongerNeeded(model)
-				DeletePed(pedPool[i])
-				SetPedAsNoLongerNeeded(pedPool[i])
-                pedPool[i] = nil
-				pedSpawned[i] = false
-			end
-		end
-		Wait(sleep)
-	end
-end)
+-- Initialize the script
+setupBlipsAndInteractions()
+spawnPedAtShops()
